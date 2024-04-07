@@ -1,4 +1,11 @@
-//! Hash maps where every possible key has an associated value.
+//! Maps where every possible key has an associated value.
+//!
+//! Only entries with *uncommon* values are actually stored in the map; all other keys are presumed
+//! to be associated with a *common* value. The definition of "common" and "uncommon" is determined
+//! by the map's optional [Commonality] type parameter; if unspecified, the map will use
+//! [DefaultCommonality], which uses the standard [Default] trait to provide the common value.
+//!
+//! [TotalHashMap] is the main data structure provided by this crate.
 
 use std::{
     borrow::Borrow,
@@ -66,11 +73,11 @@ pub type NonZeroHashMap<K, V> = TotalHashMap<K, V, ZeroCommonality>;
 
 // --------------------------------------------------------------------------
 
-/// A hash map in which every possible key has an associated value.
+/// A hash map in which every possible key has an associated value. Only entries with *uncommon*
+/// values are actually stored in the map; all other keys are presumed to be associated with a
+/// *common* value.
 ///
-/// Only entries with *uncommon* values are actually stored in the hash map; all other keys are
-/// presumed to be associated with a *common* value. The definition of "common" and "uncommon" is
-/// determined by the map's [Commonality] type parameter.
+/// See the [crate documentation](crate) for more information.
 ///
 /// The API more-or-less matches that of [HashMap]. However, methods that treat this type like a
 /// collection (for example, [`len()`](Self::len) and [`iter()`](Self::iter)) operate only on the
