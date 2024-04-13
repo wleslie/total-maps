@@ -7,9 +7,12 @@
 //!
 //! [TotalHashMap] is the main data structure provided by this crate.
 
+#[cfg(feature = "num-traits")]
 use num_traits::Zero;
 
-pub use self::hash_map::{NonZeroHashMap, TotalHashMap};
+#[cfg(feature = "num-traits")]
+pub use self::hash_map::NonZeroHashMap;
+pub use self::hash_map::TotalHashMap;
 
 pub mod hash_map;
 
@@ -50,7 +53,9 @@ impl<T: Eq + Default> Commonality<T> for DefaultCommonality {
 /// A [commonality](Commonality) based on the [Zero] trait.
 ///
 /// A [TotalHashMap] using this commonality only stores entries with nonzero values.
+#[cfg(feature = "num-traits")]
 pub struct ZeroCommonality(());
+#[cfg(feature = "num-traits")]
 impl<T: Zero> Commonality<T> for ZeroCommonality {
     fn common() -> T {
         T::zero()

@@ -2,6 +2,8 @@
 name = "total-maps"
 version = "0.1.0"
 edition = "2021"
+description = "Maps where every possible key has an associated value"
+repository = "https://github.com/wleslie/total-maps"
 
 [dependencies]
-num-traits = "0.2.18"
+num-traits = { version = "0.2.18", optional = true }
