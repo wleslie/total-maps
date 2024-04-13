@@ -23,11 +23,3 @@ version = "0.1.0"
 dependencies = [
  "num-traits",
 ]
-
-[[patch.unused]]
-name = "flexint"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "trait-tactics"
-version = "0.1.0"
