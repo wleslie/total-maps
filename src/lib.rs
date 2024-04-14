@@ -8,25 +8,25 @@
 //! [TotalHashMap] is the main data structure provided by this crate.
 
 #[cfg(feature = "num-traits")]
-use num_traits::Zero;
-
-#[cfg(feature = "num-traits")]
-pub use self::{btree_map::NonZeroBTreeMap, hash_map::NonZeroHashMap};
+pub use self::nonzero::{NonZeroBTreeMap, NonZeroHashMap, ZeroCommonality};
 pub use self::{btree_map::TotalBTreeMap, hash_map::TotalHashMap};
 
 pub mod btree_map;
 pub mod hash_map;
-
-// TODO: move zero stuff into its own module
+#[cfg(feature = "num-traits")]
+pub mod nonzero;
 
 // --------------------------------------------------------------------------
 
 /// Defines a notion of "common" vs. "uncommon" values for the type `V`, used to determine which
 /// entries are stored in a [TotalHashMap].
 ///
-/// There could be multiple definitions of commonality for the same type. Two standard
-/// implementations are provided: [DefaultCommonality] (based on the [Default] trait) and
-/// [ZeroCommonality] (based on the [Zero] trait).
+/// There could be multiple definitions of commonality for the same type. The basic implementation,
+/// [DefaultCommonality], is based on the [Default] trait.
+#[cfg_attr(
+    feature = "num-traits",
+    doc = "Likewise, [ZeroCommonality] is based on the [num_traits::Zero] trait."
+)]
 pub trait Commonality<V> {
     /// The common value of type `V`.
     fn common() -> V;
@@ -50,21 +50,5 @@ impl<T: Eq + Default> Commonality<T> for DefaultCommonality {
     }
     fn is_common(value: &T) -> bool {
         value == &T::default()
-    }
-}
-
-#[cfg(feature = "num-traits")]
-/// A [commonality](Commonality) based on the [Zero] trait.
-///
-/// A [TotalHashMap] using this commonality only stores entries with nonzero values.
-pub struct ZeroCommonality(());
-
-#[cfg(feature = "num-traits")]
-impl<T: Zero> Commonality<T> for ZeroCommonality {
-    fn common() -> T {
-        T::zero()
-    }
-    fn is_common(value: &T) -> bool {
-        value.is_zero()
     }
 }

@@ -13,8 +13,6 @@ use std::{
     ops::{Deref, DerefMut, Index},
 };
 
-#[cfg(feature = "num-traits")]
-use crate::ZeroCommonality;
 use crate::{Commonality, DefaultCommonality};
 
 // --------------------------------------------------------------------------
@@ -33,11 +31,6 @@ pub struct TotalHashMap<K, V, C = DefaultCommonality> {
     common: V, // need to store this value so we can return references to it, e.g., in Self::get
     commonality: PhantomData<*const C>,
 }
-
-#[cfg(feature = "num-traits")]
-/// A hash map that only stores entries with non-zero values. All other keys are presumed to be
-/// associated with the zero value.
-pub type NonZeroHashMap<K, V> = TotalHashMap<K, V, ZeroCommonality>;
 
 impl<K: Clone, V: Clone, C> Clone for TotalHashMap<K, V, C> {
     fn clone(&self) -> Self {

@@ -14,9 +14,9 @@ use std::{
     ops::{Deref, DerefMut, Index},
 };
 
-#[cfg(feature = "num-traits")]
-use crate::ZeroCommonality;
 use crate::{Commonality, DefaultCommonality};
+
+// --------------------------------------------------------------------------
 
 /// An ordered map in which every possible key has an associated value. Only entries with *uncommon*
 /// values are actually stored in the map; all other keys are presumed to be associated with a
@@ -32,11 +32,6 @@ pub struct TotalBTreeMap<K, V, C = DefaultCommonality> {
     common: V, // need to store this value so we can return references to it, e.g., in Self::get
     commonality: PhantomData<*const C>,
 }
-
-#[cfg(feature = "num-traits")]
-/// An ordered map that only stores entries with non-zero values. All other keys are presumed to be
-/// associated with the zero value.
-pub type NonZeroBTreeMap<K, V> = TotalBTreeMap<K, V, ZeroCommonality>;
 
 impl<K: Clone, V: Clone, C> Clone for TotalBTreeMap<K, V, C> {
     fn clone(&self) -> Self {
