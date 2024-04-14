@@ -5,5 +5,8 @@ edition = "2021"
 description = "Maps where every possible key has an associated value"
 repository = "https://github.com/wleslie/total-maps"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 num-traits = { version = "0.2.18", optional = true }

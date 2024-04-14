@@ -11,10 +11,13 @@
 use num_traits::Zero;
 
 #[cfg(feature = "num-traits")]
-pub use self::hash_map::NonZeroHashMap;
-pub use self::hash_map::TotalHashMap;
+pub use self::{btree_map::NonZeroBTreeMap, hash_map::NonZeroHashMap};
+pub use self::{btree_map::TotalBTreeMap, hash_map::TotalHashMap};
 
+pub mod btree_map;
 pub mod hash_map;
+
+// TODO: move zero stuff into its own module
 
 // --------------------------------------------------------------------------
 
@@ -50,11 +53,12 @@ impl<T: Eq + Default> Commonality<T> for DefaultCommonality {
     }
 }
 
+#[cfg(feature = "num-traits")]
 /// A [commonality](Commonality) based on the [Zero] trait.
 ///
 /// A [TotalHashMap] using this commonality only stores entries with nonzero values.
-#[cfg(feature = "num-traits")]
 pub struct ZeroCommonality(());
+
 #[cfg(feature = "num-traits")]
 impl<T: Zero> Commonality<T> for ZeroCommonality {
     fn common() -> T {
