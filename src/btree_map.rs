@@ -2,12 +2,12 @@
 //! Only entries with *uncommon* values are actually stored in the map; all other keys are presumed
 //! to be associated with a *common* value.
 
-// --------------------------------------------------------------------------
-
 use std::{
     borrow::Borrow,
+    cmp::Ordering,
     collections::{btree_map, BTreeMap},
     fmt::{self, Debug, Formatter},
+    hash::{Hash, Hasher},
     iter::FusedIterator,
     marker::PhantomData,
     mem,
@@ -565,15 +565,36 @@ impl<K: Ord, V, C: Commonality<V>> FromIterator<(K, V)> for TotalBTreeMap<K, V, 
 
 impl<K: PartialEq, V: PartialEq, C> PartialEq for TotalBTreeMap<K, V, C> {
     fn eq(&self, other: &Self) -> bool {
-        // Although both self.common and other.common should have the same value (namely,
-        // C::common()), we still need to compare them because V's PartialEq impl might not be
-        // reflexive
+        // There is no bound on C: Commonality<V>, so we can't assume self.common == other.common
         self.common == other.common && self.inner == other.inner
     }
 }
 impl<K: Eq, V: Eq, C> Eq for TotalBTreeMap<K, V, C> {}
 
-// TODO: impls of Ord, Hash
+impl<K: PartialOrd, V: PartialOrd, C> PartialOrd for TotalBTreeMap<K, V, C> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // There is no bound on C: Commonality<V>, so we can't assume self.common == other.common
+        match self.common.partial_cmp(&other.common) {
+            Some(Ordering::Equal) => {}
+            ord => return ord,
+        };
+        self.inner.partial_cmp(&other.inner)
+    }
+}
+impl<K: Ord, V: Ord, C> Ord for TotalBTreeMap<K, V, C> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // There is no bound on C: Commonality<V>, so we can't assume self.common == other.common
+        self.common.cmp(&other.common).then_with(|| self.inner.cmp(&other.inner))
+    }
+}
+
+impl<K: Hash, V: Hash, C> Hash for TotalBTreeMap<K, V, C> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // There is no bound on C: Commonality<V>, so we can't assume self.common == other.common
+        self.common.hash(state);
+        self.inner.hash(state);
+    }
+}
 
 impl<K: Debug, V: Debug, C> Debug for TotalBTreeMap<K, V, C> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

@@ -39,9 +39,8 @@ pub trait Commonality<V> {
 /// A [commonality](Commonality) based on the [Default] trait.
 ///
 /// *Important:* This type's implementation of [Commonality] is valid only if `T::default() ==
-/// T::default()`. Any type `T` with a valid [Eq] implementation satisfies this requirement, but
-/// many types like `f64` and `Vec<f64>` also satisfy this requirement, despite not implementing
-/// [Eq].
+/// T::default()`. Any type with a valid [Eq] implementation satisfies this requirement, but many
+/// types like `f64` and `Vec<f64>` also satisfy this requirement, despite not implementing [Eq].
 ///
 /// A [TotalHashMap] or [TotalBTreeMap] using this commonality only stores entries with non-default
 /// values.
