@@ -523,8 +523,7 @@ impl<K: Eq + Hash, V: PartialEq, C> PartialEq for TotalHashMap<K, V, C> {
         self.common == other.common && self.inner == other.inner
     }
 }
-// FIXME: bound on V should be Eq, as is the case for HashMap
-impl<K: Eq + Hash, V: PartialEq, C> Eq for TotalHashMap<K, V, C> {}
+impl<K: Eq + Hash, V: Eq, C> Eq for TotalHashMap<K, V, C> {}
 
 impl<K: Debug, V: Debug, C> Debug for TotalHashMap<K, V, C> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

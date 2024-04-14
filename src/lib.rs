@@ -19,7 +19,7 @@ pub mod nonzero;
 // --------------------------------------------------------------------------
 
 /// Defines a notion of "common" vs. "uncommon" values for the type `V`, used to determine which
-/// entries are stored in a [TotalHashMap].
+/// entries are stored in a [TotalHashMap] or [TotalBTreeMap].
 ///
 /// There could be multiple definitions of commonality for the same type. The basic implementation,
 /// [DefaultCommonality], is based on the [Default] trait.
@@ -33,18 +33,30 @@ pub trait Commonality<V> {
 
     /// Returns true if `value` is the common value of type `V`. `Self::is_common(Self::common())`
     /// must be true.
-    ///
-    /// If `V` implements [PartialEq], then this function should be consistent with it. That is to
-    /// say, `Self::is_common(x) && x == y` should imply `Self::is_common(y)`. Furthermore, if `V`
-    /// implements [Eq], then `Self::is_common(x) && Self::is_common(y)` should imply `x == y`.
     fn is_common(value: &V) -> bool;
 }
 
 /// A [commonality](Commonality) based on the [Default] trait.
 ///
-/// A [TotalHashMap] using this commonality only stores entries with non-default values.
+/// *Important:* This type's implementation of [Commonality] is valid only if `T::default() ==
+/// T::default()`. Any type `T` with a valid [Eq] implementation satisfies this requirement, but
+/// many types like `f64` and `Vec<f64>` also satisfy this requirement, despite not implementing
+/// [Eq].
+///
+/// A [TotalHashMap] or [TotalBTreeMap] using this commonality only stores entries with non-default
+/// values.
 pub struct DefaultCommonality(());
-impl<T: Eq + Default> Commonality<T> for DefaultCommonality {
+impl<T: PartialEq + Default> Commonality<T> for DefaultCommonality {
+    // The bound on T is PartialEq (instead of Eq) to allow non-Eq types like f64 and Vec<f64>. The
+    // unchecked reflexivity requirement specified in the docs is gross, but unlikely to be violated
+    // in normal usage.
+    //
+    // A more principled way to handle this requirement would be to define a marker trait
+    // `DefaultEq: PartialEq + Default` and specify the requirement as a "law" of the trait, and
+    // then insist that users implement this trait only when the law holds (similar to how Eq itself
+    // is a marker trait with its own reflexivity law). But implementing this marker trait would be
+    // an annoyance in the best case, and impossible (due to the orphan rule) in the worst case.
+
     fn common() -> T {
         T::default()
     }
