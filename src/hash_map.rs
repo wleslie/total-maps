@@ -135,12 +135,6 @@ pub struct Entry<'a, K, V, C: Commonality<V> = DefaultCommonality> {
     _commonality: PhantomPtr<C>,
 }
 
-enum EntryInner<'a, K, V> {
-    Occupied { inner: hash_map::OccupiedEntry<'a, K, V> },
-    Vacant { inner: hash_map::VacantEntry<'a, K, V>, value: V },
-    Dropping,
-}
-
 impl<K, V, C: Commonality<V>> Deref for Entry<'_, K, V, C> {
     type Target = V;
     fn deref(&self) -> &Self::Target {
@@ -177,6 +171,24 @@ impl<K, V, C: Commonality<V>> Drop for Entry<'_, K, V, C> {
             EntryInner::Dropping => unreachable!(),
         }
     }
+}
+
+impl<'a, K: Debug, V: Debug, C: Commonality<V>> Debug for Entry<'a, K, V, C> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_tuple("Entry");
+        match &self.inner {
+            EntryInner::Occupied { inner } => f.field(inner.key()).field(inner.get()),
+            EntryInner::Vacant { inner, value } => f.field(inner.key()).field(value),
+            EntryInner::Dropping => &mut f,
+        };
+        f.finish()
+    }
+}
+
+enum EntryInner<'a, K, V> {
+    Occupied { inner: hash_map::OccupiedEntry<'a, K, V> },
+    Vacant { inner: hash_map::VacantEntry<'a, K, V>, value: V },
+    Dropping,
 }
 
 // --------------------------------------------------------------------------

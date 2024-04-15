@@ -7,7 +7,10 @@
 //!
 //! [TotalHashMap] is the main data structure provided by this crate.
 
-use std::marker::PhantomData;
+use std::{
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+};
 
 #[cfg(feature = "num-traits")]
 pub use self::nonzero::{NonZeroBTreeMap, NonZeroHashMap, ZeroCommonality};
@@ -70,6 +73,11 @@ struct PhantomPtr<T>(PhantomData<*const T>);
 impl<T> Default for PhantomPtr<T> {
     fn default() -> Self {
         Self(PhantomData)
+    }
+}
+impl<T> Debug for PhantomPtr<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("PhantomPtr").field(&self.0).finish()
     }
 }
 unsafe impl<T> Send for PhantomPtr<T> {}
