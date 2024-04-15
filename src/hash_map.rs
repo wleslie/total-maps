@@ -8,12 +8,11 @@ use std::{
     fmt::{self, Debug, Formatter},
     hash::Hash,
     iter::FusedIterator,
-    marker::PhantomData,
     mem,
     ops::{Deref, DerefMut, Index},
 };
 
-use crate::{Commonality, DefaultCommonality};
+use crate::{Commonality, DefaultCommonality, PhantomPtr};
 
 // --------------------------------------------------------------------------
 
@@ -29,18 +28,22 @@ use crate::{Commonality, DefaultCommonality};
 pub struct TotalHashMap<K, V, C = DefaultCommonality> {
     inner: HashMap<K, V>,
     common: V, // need to store this value so we can return references to it, e.g., in Self::get
-    commonality: PhantomData<*const C>,
+    _commonality: PhantomPtr<C>,
 }
 
 impl<K: Clone, V: Clone, C> Clone for TotalHashMap<K, V, C> {
     fn clone(&self) -> Self {
-        Self { inner: self.inner.clone(), common: self.common.clone(), commonality: PhantomData }
+        Self {
+            inner: self.inner.clone(),
+            common: self.common.clone(),
+            _commonality: PhantomPtr::default(),
+        }
     }
 }
 
 impl<K, V, C: Commonality<V>> Default for TotalHashMap<K, V, C> {
     fn default() -> Self {
-        Self { inner: HashMap::default(), common: C::common(), commonality: PhantomData }
+        Self { inner: HashMap::default(), common: C::common(), _commonality: PhantomPtr::default() }
     }
 }
 impl<K, V, C: Commonality<V>> TotalHashMap<K, V, C> {
@@ -119,7 +122,7 @@ impl<K: Eq + Hash, V, C: Commonality<V>> TotalHashMap<K, V, C> {
                 hash_map::Entry::Occupied(inner) => EntryInner::Occupied { inner },
                 hash_map::Entry::Vacant(inner) => EntryInner::Vacant { inner, value: C::common() },
             },
-            commonality: PhantomData,
+            _commonality: PhantomPtr::default(),
         }
     }
 }
@@ -129,7 +132,7 @@ impl<K: Eq + Hash, V, C: Commonality<V>> TotalHashMap<K, V, C> {
 /// This view is constructed from [TotalHashMap::entry].
 pub struct Entry<'a, K, V, C: Commonality<V> = DefaultCommonality> {
     inner: EntryInner<'a, K, V>,
-    commonality: PhantomData<*const C>,
+    _commonality: PhantomPtr<C>,
 }
 
 enum EntryInner<'a, K, V> {

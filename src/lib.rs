@@ -7,6 +7,8 @@
 //!
 //! [TotalHashMap] is the main data structure provided by this crate.
 
+use std::marker::PhantomData;
+
 #[cfg(feature = "num-traits")]
 pub use self::nonzero::{NonZeroBTreeMap, NonZeroHashMap, ZeroCommonality};
 pub use self::{btree_map::TotalBTreeMap, hash_map::TotalHashMap};
@@ -63,3 +65,12 @@ impl<T: PartialEq + Default> Commonality<T> for DefaultCommonality {
         value == &T::default()
     }
 }
+
+struct PhantomPtr<T>(PhantomData<*const T>);
+impl<T> Default for PhantomPtr<T> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+unsafe impl<T> Send for PhantomPtr<T> {}
+unsafe impl<T> Sync for PhantomPtr<T> {}
