@@ -2,7 +2,7 @@ use itertools::Itertools;
 use total_maps::{Commonality, TotalBTreeMap, TotalHashMap};
 
 macro_rules! common {
-    (mod $mod:ident, $Map:ident, $iter_eq:expr $(,)?) => {
+    (mod $mod:ident, $Map:ident, $as_inner_mut:ident, $iter_eq:expr $(,)?) => {
         mod $mod {
             use super::*;
 
@@ -101,13 +101,13 @@ macro_rules! common {
             }
 
             #[test]
-            #[ignore = "mutating iterators are currently broken/unsound"]
-            fn values_mut() {
+            fn as_inner_mut() {
                 let mut m = $Map::<_, _>::new();
                 assert_eq!(m.insert("foo", "bar"), "");
                 assert_eq!(m.insert("baz", "quux"), "");
 
-                let it = m.values_mut();
+                let mut view = m.$as_inner_mut();
+                let it = view.values_mut();
                 let mut values = it.collect::<Vec<_>>();
                 // FIXME: holding on to the mutable value references after dropping the iterator
                 // makes it possible to break the map invariant. ValuesMut probably needs to be made
@@ -118,6 +118,7 @@ macro_rules! common {
                 *values[0] = "bar2";
                 assert_eq!(values[1], &mut "quux");
                 *values[1] = "";
+                drop(view);
 
                 assert_eq!(m.len(), 1);
                 assert!($iter_eq(m.iter(), [(&"foo", &"bar2")]));
@@ -154,8 +155,8 @@ macro_rules! common {
     };
 }
 
-common!(mod btree_map, TotalBTreeMap, iter_eq);
-common!(mod hash_map, TotalHashMap, unordered_iter_eq);
+common!(mod btree_map, TotalBTreeMap, as_btree_map_mut, iter_eq);
+common!(mod hash_map, TotalHashMap, as_hash_map_mut, unordered_iter_eq);
 
 fn iter_eq<I, J>(lhs: I, rhs: J) -> bool
 where

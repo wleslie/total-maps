@@ -213,15 +213,6 @@ impl<K, V, C> TotalBTreeMap<K, V, C> {
     pub fn values(&self) -> Values<'_, K, V> {
         Values(self.inner.values())
     }
-    /// An iterator over all *uncommon* values in the map, in sorted order, allowing mutation of the
-    /// values.
-    pub fn values_mut(&mut self) -> ValuesMut<'_, K, V, C>
-    where
-        K: Ord,
-        C: Commonality<V>,
-    {
-        ValuesMut::new(self)
-    }
     /// Creates a consuming iterator over all *uncommon* values in the map, in sorted order.
     pub fn into_values(self) -> IntoValues<K, V> {
         IntoValues(self.inner.into_values())
@@ -229,15 +220,6 @@ impl<K, V, C> TotalBTreeMap<K, V, C> {
     /// An iterator over all *uncommon* entries in the map, in sorted order.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter(self.inner.iter())
-    }
-    /// An iterator over all *uncommon* entries in the map, in sorted order, allowing mutation of
-    /// the values.
-    pub fn iter_mut(&mut self) -> IterMut<'_, K, V, C>
-    where
-        K: Ord,
-        C: Commonality<V>,
-    {
-        IterMut::new(self)
     }
 }
 
@@ -253,13 +235,6 @@ impl<'a, K, V, C> IntoIterator for &'a TotalBTreeMap<K, V, C> {
     type IntoIter = Iter<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
-    }
-}
-impl<'a, K: Ord, V, C: Commonality<V>> IntoIterator for &'a mut TotalBTreeMap<K, V, C> {
-    type Item = (&'a K, &'a mut V);
-    type IntoIter = IterMut<'a, K, V, C>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter_mut()
     }
 }
 
@@ -373,51 +348,6 @@ impl<K: Debug, V: Debug> Debug for Values<'_, K, V> {
     }
 }
 
-/// An iterator over the *uncommon* values in a [TotalBTreeMap] that allows mutation of the values.
-///
-/// This iterator is created by [TotalBTreeMap::values_mut].
-pub struct ValuesMut<'a, K: Ord, V, C: Commonality<V> = DefaultCommonality> {
-    // Always Some except while dropping
-    inner: Option<btree_map::ValuesMut<'a, K, V>>,
-    // Used while dropping to restore invariant. Must be a raw pointer because the other field
-    // borrows from it mutably
-    map: *mut TotalBTreeMap<K, V, C>,
-}
-impl<'a, K: Ord, V, C: Commonality<V>> ValuesMut<'a, K, V, C> {
-    fn new(map: &'a mut TotalBTreeMap<K, V, C>) -> Self {
-        Self { map: map as *mut _, inner: Some(map.inner.values_mut()) }
-    }
-}
-impl<'a, K: Ord, V, C: Commonality<V>> Iterator for ValuesMut<'a, K, V, C> {
-    type Item = &'a mut V;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.as_mut().unwrap().next()
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.inner.as_ref().unwrap().size_hint()
-    }
-}
-impl<'a, K: Ord, V, C: Commonality<V>> DoubleEndedIterator for ValuesMut<'a, K, V, C> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.as_mut().unwrap().next_back()
-    }
-}
-impl<K: Ord, V, C: Commonality<V>> ExactSizeIterator for ValuesMut<'_, K, V, C> {
-    fn len(&self) -> usize {
-        self.inner.as_ref().unwrap().len()
-    }
-}
-impl<K: Ord, V, C: Commonality<V>> FusedIterator for ValuesMut<'_, K, V, C> {}
-impl<K: Ord, V, C: Commonality<V>> Drop for ValuesMut<'_, K, V, C> {
-    fn drop(&mut self) {
-        // FIXME: this is unsound because the mutable references yielded by this iterator are
-        // allowed to outlive the iterator
-        let _ = self.inner.take().unwrap();
-        let map = unsafe { &mut *self.map };
-        map.inner.retain(|_, value| !C::is_common(value));
-    }
-}
-
 /// An owning iterator over the *uncommon* values in a [TotalBTreeMap].
 ///
 /// This iterator is created by [TotalBTreeMap::into_values].
@@ -488,51 +418,6 @@ impl<K: Debug, V: Debug> Debug for Iter<'_, K, V> {
     }
 }
 
-/// An iterator over the *uncommon* entries in a [TotalBTreeMap] that allows mutation of the values.
-///
-/// This iterator is created by [TotalBTreeMap::iter_mut].
-pub struct IterMut<'a, K: Ord, V, C: Commonality<V> = DefaultCommonality> {
-    // Always Some except while dropping
-    inner: Option<btree_map::IterMut<'a, K, V>>,
-    // Used while dropping to restore invariant. Must be a raw pointer because the other field
-    // borrows from it mutably
-    map: *mut TotalBTreeMap<K, V, C>,
-}
-impl<'a, K: Ord, V, C: Commonality<V>> IterMut<'a, K, V, C> {
-    fn new(map: &'a mut TotalBTreeMap<K, V, C>) -> Self {
-        Self { map: map as *mut _, inner: Some(map.inner.iter_mut()) }
-    }
-}
-impl<'a, K: Ord, V, C: Commonality<V>> Iterator for IterMut<'a, K, V, C> {
-    type Item = (&'a K, &'a mut V);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.as_mut().unwrap().next()
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.inner.as_ref().unwrap().size_hint()
-    }
-}
-impl<'a, K: Ord, V, C: Commonality<V>> DoubleEndedIterator for IterMut<'a, K, V, C> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.as_mut().unwrap().next_back()
-    }
-}
-impl<K: Ord, V, C: Commonality<V>> ExactSizeIterator for IterMut<'_, K, V, C> {
-    fn len(&self) -> usize {
-        self.inner.as_ref().unwrap().len()
-    }
-}
-impl<K: Ord, V, C: Commonality<V>> FusedIterator for IterMut<'_, K, V, C> {}
-impl<K: Ord, V, C: Commonality<V>> Drop for IterMut<'_, K, V, C> {
-    fn drop(&mut self) {
-        // FIXME: this is unsound because the mutable references yielded by this iterator are
-        // allowed to outlive the iterator
-        let _ = self.inner.take().unwrap();
-        let map = unsafe { &mut *self.map };
-        map.inner.retain(|_, value| !C::is_common(value));
-    }
-}
-
 /// An owning iterator over the *uncommon* entries in a [TotalBTreeMap].
 ///
 /// This iterator is created by [TotalBTreeMap]'s implementation of [IntoIterator].
@@ -582,6 +467,66 @@ impl<K: Ord, V, C: Commonality<V>> FromIterator<(K, V)> for TotalBTreeMap<K, V, 
 }
 
 // --------------------------------------------------------------------------
+// Low-level access
+
+impl<K: Ord, V, C: Commonality<V>> TotalBTreeMap<K, V, C> {
+    /// Returns a mutable view into the underlying [BTreeMap] of a [TotalBTreeMap], from which
+    /// mutating iterators can be obtained by calling [BTreeMap::values_mut] or
+    /// [BTreeMap::iter_mut].
+    ///
+    /// By directly mutating the underlying [BTreeMap], it is possible to store *uncommon* entries
+    /// in the map temporarily. When the returned view is dropped, all *uncommon* entries will be
+    /// removed, restoring the invariant of [TotalBTreeMap].
+    ///
+    /// You don't need this method if you are only mutating individual entries; use the
+    /// [entry][Self::entry] method instead.
+    pub fn as_btree_map_mut(&mut self) -> AsBTreeMapMut<'_, K, V, C> {
+        AsBTreeMapMut { map: &mut self.inner, _commonality: PhantomPtr::default() }
+    }
+}
+
+/// A mutable view into the underlying [BTreeMap] of a [TotalBTreeMap].
+///
+/// This view is created by [TotalBTreeMap::as_btree_map_mut].
+#[derive(Debug)]
+pub struct AsBTreeMapMut<'a, K: Ord, V, C: Commonality<V> = DefaultCommonality> {
+    map: &'a mut BTreeMap<K, V>,
+    _commonality: PhantomPtr<C>,
+}
+
+impl<'a, K: Ord, V, C: Commonality<V>> Deref for AsBTreeMapMut<'a, K, V, C> {
+    type Target = BTreeMap<K, V>;
+    fn deref(&self) -> &Self::Target {
+        self.map
+    }
+}
+impl<'a, K: Ord, V, C: Commonality<V>> DerefMut for AsBTreeMapMut<'a, K, V, C> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.map
+    }
+}
+
+impl<'a, K: Ord, V, C: Commonality<V>> Drop for AsBTreeMapMut<'a, K, V, C> {
+    fn drop(&mut self) {
+        self.map.retain(|_, value| !C::is_common(value));
+    }
+}
+
+impl<'a, K: Ord, V: PartialEq, C: Commonality<V>> PartialEq for AsBTreeMapMut<'a, K, V, C> {
+    fn eq(&self, other: &Self) -> bool {
+        self.map == other.map
+        // deliberately ignoring commonality
+    }
+}
+impl<'a, K: Ord, V: Eq, C: Commonality<V>> Eq for AsBTreeMapMut<'a, K, V, C> {}
+impl<'a, K: Ord + Hash, V: Hash, C: Commonality<V> + Hash> Hash for AsBTreeMapMut<'a, K, V, C> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.map.hash(state);
+        // deliberately ignoring commonality
+    }
+}
+
+// --------------------------------------------------------------------------
 // Miscellaneous traits
 
 impl<K: PartialEq, V: PartialEq, C> PartialEq for TotalBTreeMap<K, V, C> {
@@ -626,31 +571,5 @@ impl<K: Debug, V: Debug, C> Debug for TotalBTreeMap<K, V, C> {
             }
         }
         f.debug_map().entries(self.iter()).entry(&Rest, &self.common).finish()
-    }
-}
-
-// --------------------------------------------------------------------------
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn iter_mut_drop() {
-        let mut m = TotalBTreeMap::<i32, i32>::new();
-        m.iter_mut();
-    }
-
-    #[test]
-    #[ignore = "mutating iterators are currently broken/unsound"]
-    fn iter_mut_use_after_drop() {
-        // FIXME: undefined behavior that is caught with Miri
-        let mut m = TotalBTreeMap::<i32, i32>::new();
-        m.insert(1, 2);
-        let mut it = m.iter_mut();
-        let (_, val) = it.next().unwrap();
-        *val = 3;
-        drop(it);
-        *val = 4;
     }
 }
