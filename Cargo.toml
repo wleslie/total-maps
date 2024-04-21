@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 description = "Maps where every possible key has an associated value"
 repository = "https://github.com/wleslie/total-maps"
+license = "MIT"
+categories = ["data-structures"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -11,8 +13,8 @@ all-features = true
 [dependencies]
 num-traits = { version = "0.2.18", optional = true }
 
-[profile.coverage]
-inherits = "test"
-
 [dev-dependencies]
 itertools = "0.12.1"
+
+[profile.coverage]
+inherits = "test"
