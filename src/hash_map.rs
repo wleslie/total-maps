@@ -373,7 +373,8 @@ impl<K, V, C: Commonality<V>> ExactSizeIterator for ValuesMut<'_, K, V, C> {
 impl<K, V, C: Commonality<V>> FusedIterator for ValuesMut<'_, K, V, C> {}
 impl<K, V, C: Commonality<V>> Drop for ValuesMut<'_, K, V, C> {
     fn drop(&mut self) {
-        // TODO: test with Miri
+        // FIXME: this is unsound because the mutable references yielded by this iterator are
+        // allowed to outlive the iterator
         let _ = self.inner.take().unwrap();
         let map = unsafe { &mut *self.map };
         map.inner.retain(|_, value| !C::is_common(value));
@@ -462,7 +463,8 @@ impl<K, V, C: Commonality<V>> ExactSizeIterator for IterMut<'_, K, V, C> {
 impl<K, V, C: Commonality<V>> FusedIterator for IterMut<'_, K, V, C> {}
 impl<K, V, C: Commonality<V>> Drop for IterMut<'_, K, V, C> {
     fn drop(&mut self) {
-        // TODO: test with Miri
+        // FIXME: this is unsound because the mutable references yielded by this iterator are
+        // allowed to outlive the iterator
         let _ = self.inner.take().unwrap();
         let map = unsafe { &mut *self.map };
         map.inner.retain(|_, value| !C::is_common(value));
@@ -562,5 +564,18 @@ mod tests {
     fn iter_mut_drop() {
         let mut m = TotalHashMap::<i32, i32>::new();
         m.iter_mut();
+    }
+
+    #[test]
+    #[ignore = "mutating iterators are currently broken/unsound"]
+    fn iter_mut_use_after_drop() {
+        // FIXME: undefined behavior that is caught with Miri
+        let mut m = TotalHashMap::<i32, i32>::new();
+        m.insert(1, 2);
+        let mut it = m.iter_mut();
+        let (_, val) = it.next().unwrap();
+        *val = 3;
+        drop(it);
+        *val = 4;
     }
 }

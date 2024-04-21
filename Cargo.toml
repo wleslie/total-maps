@@ -10,3 +10,9 @@ all-features = true
 
 [dependencies]
 num-traits = { version = "0.2.18", optional = true }
+
+[profile.coverage]
+inherits = "test"
+
+[dev-dependencies]
+itertools = "0.12.1"
