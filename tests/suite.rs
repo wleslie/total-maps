@@ -16,12 +16,13 @@ macro_rules! common {
 
                 assert!(!m.is_empty());
                 assert_eq!(m.len(), 2);
-                assert!($iter_eq(m.keys(), [&"bar", &"foo"]));
-                assert!($iter_eq(m.values(), [&"v_bar", &"v_foo_2"]));
-                assert!($iter_eq(m.iter(), [(&"bar", &"v_bar"), (&"foo", &"v_foo_2")]));
-                assert!($iter_eq(m.clone().into_keys(), ["bar", "foo"]));
-                assert!($iter_eq(m.clone().into_values(), ["v_bar", "v_foo_2"]));
-                assert!($iter_eq(m, [("bar", "v_bar"), ("foo", "v_foo_2")]));
+                assert_iter_eq(m.keys(), [&"bar", &"foo"], $iter_eq);
+                assert_iter_eq(m.values(), [&"v_bar", &"v_foo_2"], $iter_eq);
+                assert_iter_eq(m.iter(), [(&"bar", &"v_bar"), (&"foo", &"v_foo_2")], $iter_eq);
+                assert_iter_eq(&m, [(&"bar", &"v_bar"), (&"foo", &"v_foo_2")], $iter_eq);
+                assert_iter_eq(m.clone().into_keys(), ["bar", "foo"], $iter_eq);
+                assert_iter_eq(m.clone().into_values(), ["v_bar", "v_foo_2"], $iter_eq);
+                assert_iter_eq(m, [("bar", "v_bar"), ("foo", "v_foo_2")], $iter_eq);
             }
 
             #[test]
@@ -41,12 +42,12 @@ macro_rules! common {
                 assert_eq!(m.insert("foo", "bar"), "");
                 assert_eq!(m.insert("baz", "quux"), "");
                 assert_eq!(m.len(), 2);
-                assert!($iter_eq(m.iter(), [(&"baz", &"quux"), (&"foo", &"bar")]));
+                assert_iter_eq(m.iter(), [(&"baz", &"quux"), (&"foo", &"bar")], $iter_eq);
 
                 assert_eq!(m.remove(&"foo"), "bar");
                 assert_eq!(m.remove(&"xyzzy"), "");
                 assert_eq!(m.len(), 1);
-                assert!($iter_eq(m.iter(), [(&"baz", &"quux")]));
+                assert_iter_eq(m.iter(), [(&"baz", &"quux")], $iter_eq);
 
                 m.clear();
                 assert_eq!(m.len(), 0);
@@ -121,7 +122,7 @@ macro_rules! common {
                 drop(view);
 
                 assert_eq!(m.len(), 1);
-                assert!($iter_eq(m.iter(), [(&"foo", &"bar2")]));
+                assert_iter_eq(m.iter(), [(&"foo", &"bar2")], $iter_eq);
             }
 
             #[test]
@@ -131,14 +132,14 @@ macro_rules! common {
 
                 let m = elems.into_iter().collect::<$Map<_, _>>();
                 assert_eq!(m.len(), 1);
-                assert!($iter_eq(m.iter(), [(&"foo", &"bar2")]));
+                assert_iter_eq(m.iter(), [(&"foo", &"bar2")], $iter_eq);
 
                 let mut m = $Map::<_, _>::new();
                 m.insert("xyzzy", "plugh");
                 m.insert("monkey", "banana");
                 m.extend(elems);
                 assert_eq!(m.len(), 2);
-                assert!($iter_eq(m.iter(), [(&"foo", &"bar2"), (&"monkey", &"banana")]));
+                assert_iter_eq(m.iter(), [(&"foo", &"bar2"), (&"monkey", &"banana")], $iter_eq);
             }
 
             #[test]
@@ -155,16 +156,30 @@ macro_rules! common {
     };
 }
 
-common!(mod btree_map, TotalBTreeMap, as_btree_map_mut, iter_eq);
+common!(mod btree_map, TotalBTreeMap, as_btree_map_mut, Iterator::eq);
 common!(mod hash_map, TotalHashMap, as_hash_map_mut, unordered_iter_eq);
 
-fn iter_eq<I, J>(lhs: I, rhs: J) -> bool
+#[test]
+fn hash_drain() {
+    let mut m = TotalHashMap::<_, _>::new();
+    assert_eq!(m.insert("foo", "bar"), "");
+    assert_eq!(m.insert("baz", "quux"), "");
+
+    assert_iter_eq(m.drain(), [("baz", "quux"), ("foo", "bar")], unordered_iter_eq);
+    assert!(m.is_empty());
+}
+
+fn assert_iter_eq<I, J>(lhs: I, rhs: J, iter_eq: impl FnOnce(I::IntoIter, J::IntoIter) -> bool)
 where
     I: IntoIterator,
+    I::IntoIter: ExactSizeIterator,
     J: IntoIterator<Item = I::Item>,
-    I::Item: PartialEq,
+    J::IntoIter: ExactSizeIterator,
 {
-    lhs.into_iter().eq(rhs)
+    let lhs = lhs.into_iter();
+    let rhs = rhs.into_iter();
+    assert_eq!(lhs.len(), rhs.len());
+    assert!(iter_eq(lhs, rhs));
 }
 
 fn unordered_iter_eq<I, J>(lhs: I, rhs: J) -> bool

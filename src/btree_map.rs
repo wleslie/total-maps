@@ -488,41 +488,57 @@ impl<K: Ord, V, C: Commonality<V>> TotalBTreeMap<K, V, C> {
 /// A mutable view into the underlying [BTreeMap] of a [TotalBTreeMap].
 ///
 /// This view is created by [TotalBTreeMap::as_btree_map_mut].
-#[derive(Debug)]
 pub struct AsBTreeMapMut<'a, K: Ord, V, C: Commonality<V> = DefaultCommonality> {
     map: &'a mut BTreeMap<K, V>,
     _commonality: PhantomPtr<C>,
 }
 
-impl<'a, K: Ord, V, C: Commonality<V>> Deref for AsBTreeMapMut<'a, K, V, C> {
+impl<K: Ord, V, C: Commonality<V>> Deref for AsBTreeMapMut<'_, K, V, C> {
     type Target = BTreeMap<K, V>;
     fn deref(&self) -> &Self::Target {
         self.map
     }
 }
-impl<'a, K: Ord, V, C: Commonality<V>> DerefMut for AsBTreeMapMut<'a, K, V, C> {
+impl<K: Ord, V, C: Commonality<V>> DerefMut for AsBTreeMapMut<'_, K, V, C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.map
     }
 }
 
-impl<'a, K: Ord, V, C: Commonality<V>> Drop for AsBTreeMapMut<'a, K, V, C> {
+impl<K: Ord, V, C: Commonality<V>> Drop for AsBTreeMapMut<'_, K, V, C> {
     fn drop(&mut self) {
         self.map.retain(|_, value| !C::is_common(value));
     }
 }
 
-impl<'a, K: Ord, V: PartialEq, C: Commonality<V>> PartialEq for AsBTreeMapMut<'a, K, V, C> {
+impl<K: Ord, V: PartialEq, C: Commonality<V>> PartialEq for AsBTreeMapMut<'_, K, V, C> {
     fn eq(&self, other: &Self) -> bool {
         self.map == other.map
         // deliberately ignoring commonality
     }
 }
-impl<'a, K: Ord, V: Eq, C: Commonality<V>> Eq for AsBTreeMapMut<'a, K, V, C> {}
-impl<'a, K: Ord + Hash, V: Hash, C: Commonality<V> + Hash> Hash for AsBTreeMapMut<'a, K, V, C> {
+impl<K: Ord, V: Eq, C: Commonality<V>> Eq for AsBTreeMapMut<'_, K, V, C> {}
+impl<K: Ord, V: PartialOrd, C: Commonality<V>> PartialOrd for AsBTreeMapMut<'_, K, V, C> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.map.partial_cmp(&other.map)
+        // deliberately ignoring commonality
+    }
+}
+impl<K: Ord, V: Ord, C: Commonality<V>> Ord for AsBTreeMapMut<'_, K, V, C> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.map.cmp(&other.map)
+        // deliberately ignoring commonality
+    }
+}
+impl<K: Ord + Hash, V: Hash, C: Commonality<V>> Hash for AsBTreeMapMut<'_, K, V, C> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.map.hash(state);
         // deliberately ignoring commonality
+    }
+}
+impl<K: Ord + Debug, V: Debug, C: Commonality<V>> Debug for AsBTreeMapMut<'_, K, V, C> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("AsBTreeMapMut").field(&self.map).finish()
     }
 }
 

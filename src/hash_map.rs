@@ -454,37 +454,41 @@ impl<K, V, C: Commonality<V>> TotalHashMap<K, V, C> {
 /// A mutable view into the underlying [HashMap] of a [TotalHashMap].
 ///
 /// This view is created by [TotalHashMap::as_hash_map_mut].
-#[derive(Debug)]
 pub struct AsHashMapMut<'a, K, V, C: Commonality<V> = DefaultCommonality> {
     map: &'a mut HashMap<K, V>,
     _commonality: PhantomPtr<C>,
 }
 
-impl<'a, K, V, C: Commonality<V>> Deref for AsHashMapMut<'a, K, V, C> {
+impl<K, V, C: Commonality<V>> Deref for AsHashMapMut<'_, K, V, C> {
     type Target = HashMap<K, V>;
     fn deref(&self) -> &Self::Target {
         self.map
     }
 }
-impl<'a, K, V, C: Commonality<V>> DerefMut for AsHashMapMut<'a, K, V, C> {
+impl<K, V, C: Commonality<V>> DerefMut for AsHashMapMut<'_, K, V, C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.map
     }
 }
 
-impl<'a, K, V, C: Commonality<V>> Drop for AsHashMapMut<'a, K, V, C> {
+impl<K, V, C: Commonality<V>> Drop for AsHashMapMut<'_, K, V, C> {
     fn drop(&mut self) {
         self.map.retain(|_, value| !C::is_common(value));
     }
 }
 
-impl<'a, K: Eq + Hash, V: PartialEq, C: Commonality<V>> PartialEq for AsHashMapMut<'a, K, V, C> {
+impl<K: Eq + Hash, V: PartialEq, C: Commonality<V>> PartialEq for AsHashMapMut<'_, K, V, C> {
     fn eq(&self, other: &Self) -> bool {
         // deliberately ignoring commonality
         self.map == other.map
     }
 }
-impl<'a, K: Eq + Hash, V: Eq, C: Commonality<V>> Eq for AsHashMapMut<'a, K, V, C> {}
+impl<K: Eq + Hash, V: Eq, C: Commonality<V>> Eq for AsHashMapMut<'_, K, V, C> {}
+impl<K: Debug, V: Debug, C: Commonality<V>> Debug for AsHashMapMut<'_, K, V, C> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("AsHashMapMut").field(&self.map).finish()
+    }
+}
 
 // --------------------------------------------------------------------------
 // Miscellaneous traits
