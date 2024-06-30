@@ -5,7 +5,7 @@
 //! by the map's optional [Commonality] type parameter; if unspecified, the map will use
 //! [DefaultCommonality], which uses the standard [Default] trait to provide the common value.
 //!
-//! [TotalHashMap] is the main data structure provided by this crate.
+//! [TotalHashMap] and [TotalBTreeMap] are the main data structures provided by this crate.
 
 use std::{
     fmt::{self, Debug, Formatter},
