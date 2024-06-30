@@ -152,6 +152,26 @@ macro_rules! common {
                 let nan_map = $Map::<&str, _, NaNCommonality>::new();
                 assert_ne!(nan_map, nan_map);
             }
+
+            #[test]
+            fn uncommon_entry() {
+                let mut m = $Map::<_, _>::new();
+                assert_eq!(m.insert("foo", "bar"), "");
+
+                assert!(m.uncommon_entry("nope").is_none());
+
+                {
+                    let mut entry = m.uncommon_entry("foo").unwrap();
+                    *entry = "baz";
+                }
+                assert_eq!(m.get("foo"), &"baz");
+
+                {
+                    let mut entry = m.uncommon_entry("foo").unwrap();
+                    *entry = "";
+                }
+                assert!(!m.contains_key("foo"));
+            }
         }
     };
 }
@@ -167,26 +187,6 @@ fn hash_drain() {
 
     assert_iter_eq(m.drain(), [("baz", "quux"), ("foo", "bar")], unordered_iter_eq);
     assert!(m.is_empty());
-}
-
-#[test]
-fn hash_uncommon_entry() {
-    let mut m = TotalHashMap::<_, _>::new();
-    assert_eq!(m.insert("foo", "bar"), "");
-
-    assert!(m.uncommon_entry("nope").is_none());
-
-    {
-        let mut entry = m.uncommon_entry("foo").unwrap();
-        *entry = "baz";
-    }
-    assert_eq!(m.get("foo"), &"baz");
-
-    {
-        let mut entry = m.uncommon_entry("foo").unwrap();
-        *entry = "";
-    }
-    assert!(!m.contains_key("foo"));
 }
 
 fn assert_iter_eq<I, J>(lhs: I, rhs: J, iter_eq: impl FnOnce(I::IntoIter, J::IntoIter) -> bool)

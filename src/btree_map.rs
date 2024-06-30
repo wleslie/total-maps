@@ -121,46 +121,81 @@ impl<K: Ord, V, C: Commonality<V>> TotalBTreeMap<K, V, C> {
     }
 
     /// Gets the given key's associated entry in the map for in-place manipulation.
-    pub fn entry(&mut self, key: K) -> Entry<'_, K, V, C> {
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, K, V, C> {
         Entry {
             inner: match self.inner.entry(key) {
                 btree_map::Entry::Occupied(inner) => EntryInner::Occupied { inner },
                 btree_map::Entry::Vacant(inner) => EntryInner::Vacant { inner, value: C::common() },
             },
-            _commonality: PhantomPtr::default(),
         }
+    }
+
+    /// Gets the given key's associated entry in the map if it has an *uncommon* value; otherwise
+    /// returns [None].
+    ///
+    /// In contrast with [Self::entry], this method accepts the key in borrowed form.
+    // TODO: equivalent API for BTreeMap
+    pub fn uncommon_entry<'a, Q>(&'a mut self, key: &'a Q) -> Option<Entry<'a, Q, K, V, C>>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        let map = self as *mut _;
+        let value = self.inner.get_mut(key)?;
+        Some(Entry { inner: EntryInner::ByRef { map, key, value } })
     }
 }
 
 /// A view into a single entry in a [TotalBTreeMap].
 ///
 /// This view is constructed from [TotalBTreeMap::entry].
-pub struct Entry<'a, K: Ord, V, C: Commonality<V> = DefaultCommonality> {
-    inner: EntryInner<'a, K, V>,
-    _commonality: PhantomPtr<C>,
+pub struct Entry<'a, Q, K, V, C = DefaultCommonality>
+where
+    Q: Ord + ?Sized,
+    K: Ord + Borrow<Q>,
+    C: Commonality<V>,
+{
+    inner: EntryInner<'a, Q, K, V, C>,
 }
 
-impl<K: Ord, V, C: Commonality<V>> Deref for Entry<'_, K, V, C> {
+impl<Q, K, V, C> Deref for Entry<'_, Q, K, V, C>
+where
+    Q: Ord + ?Sized,
+    K: Ord + Borrow<Q>,
+    C: Commonality<V>,
+{
     type Target = V;
     fn deref(&self) -> &Self::Target {
         match &self.inner {
             EntryInner::Occupied { inner } => inner.get(),
             EntryInner::Vacant { value, .. } => value,
+            EntryInner::ByRef { value, .. } => value,
             EntryInner::Dropping => unreachable!(),
         }
     }
 }
-impl<K: Ord, V, C: Commonality<V>> DerefMut for Entry<'_, K, V, C> {
+impl<Q, K, V, C> DerefMut for Entry<'_, Q, K, V, C>
+where
+    Q: Ord + ?Sized,
+    K: Ord + Borrow<Q>,
+    C: Commonality<V>,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         match &mut self.inner {
             EntryInner::Occupied { inner } => inner.get_mut(),
             EntryInner::Vacant { value, .. } => value,
+            EntryInner::ByRef { value, .. } => value,
             EntryInner::Dropping => unreachable!(),
         }
     }
 }
 
-impl<K: Ord, V, C: Commonality<V>> Drop for Entry<'_, K, V, C> {
+impl<Q, K, V, C> Drop for Entry<'_, Q, K, V, C>
+where
+    Q: Ord + ?Sized,
+    K: Ord + Borrow<Q>,
+    C: Commonality<V>,
+{
     fn drop(&mut self) {
         match mem::replace(&mut self.inner, EntryInner::Dropping) {
             EntryInner::Occupied { inner } => {
@@ -173,26 +208,39 @@ impl<K: Ord, V, C: Commonality<V>> Drop for Entry<'_, K, V, C> {
                     inner.insert(value);
                 }
             }
+            EntryInner::ByRef { map, key, value } => {
+                if C::is_common(value) {
+                    unsafe { &mut *map }.remove(key);
+                }
+            }
             EntryInner::Dropping => unreachable!(),
         }
     }
 }
 
-impl<'a, K: Debug + Ord, V: Debug, C: Commonality<V>> Debug for Entry<'a, K, V, C> {
+impl<'a, Q, K, V, C> Debug for Entry<'a, Q, K, V, C>
+where
+    Q: Debug + Ord + ?Sized,
+    K: Debug + Ord + Borrow<Q>,
+    V: Debug,
+    C: Commonality<V>,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut f = f.debug_tuple("Entry");
         match &self.inner {
             EntryInner::Occupied { inner } => f.field(inner.key()).field(inner.get()),
             EntryInner::Vacant { inner, value } => f.field(inner.key()).field(value),
+            EntryInner::ByRef { key, value, .. } => f.field(key).field(value),
             EntryInner::Dropping => &mut f,
         };
         f.finish()
     }
 }
 
-enum EntryInner<'a, K, V> {
+enum EntryInner<'a, Q: ?Sized, K, V, C> {
     Occupied { inner: btree_map::OccupiedEntry<'a, K, V> },
     Vacant { inner: btree_map::VacantEntry<'a, K, V>, value: V },
+    ByRef { map: *mut TotalBTreeMap<K, V, C>, key: &'a Q, value: &'a mut V },
     Dropping,
 }
 

@@ -122,7 +122,6 @@ impl<K: Eq + Hash, V, C: Commonality<V>> TotalHashMap<K, V, C> {
                 hash_map::Entry::Occupied(inner) => EntryInner::Occupied { inner },
                 hash_map::Entry::Vacant(inner) => EntryInner::Vacant { inner, value: C::common() },
             },
-            _commonality: PhantomPtr::default(),
         }
     }
 
@@ -136,12 +135,9 @@ impl<K: Eq + Hash, V, C: Commonality<V>> TotalHashMap<K, V, C> {
         K: Borrow<Q>,
         Q: Eq + Hash + ?Sized,
     {
-        let self_ptr = self as *mut _;
+        let map = self as *mut _;
         let value = self.inner.get_mut(key)?;
-        Some(Entry {
-            inner: EntryInner::ByRef { map: self_ptr, key: key, value },
-            _commonality: PhantomPtr::default(),
-        })
+        Some(Entry { inner: EntryInner::ByRef { map, key, value } })
     }
 }
 
@@ -155,7 +151,6 @@ where
     C: Commonality<V>,
 {
     inner: EntryInner<'a, Q, K, V, C>,
-    _commonality: PhantomPtr<C>,
 }
 
 impl<Q, K, V, C> Deref for Entry<'_, Q, K, V, C>
@@ -220,8 +215,8 @@ where
 
 impl<'a, Q, K, V, C> Debug for Entry<'a, Q, K, V, C>
 where
-    Q: Eq + Hash + Debug + ?Sized,
-    K: Eq + Hash + Borrow<Q> + Debug,
+    Q: Debug + Eq + Hash + ?Sized,
+    K: Debug + Eq + Hash + Borrow<Q>,
     V: Debug,
     C: Commonality<V>,
 {

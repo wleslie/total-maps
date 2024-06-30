@@ -1,8 +1,9 @@
 ## Unreleased
 
-- *Breaking:* `hash_map::Entry` has additional generic type parameters and bounds.
+- *Breaking:* `hash_map::Entry` and `btree_map::Entry` have additional generic type parameters and
+  bounds.
 - Added `EmptyCommonality`.
-- Added `TotalHashMap::uncommon_entry`.
+- Added `TotalHashMap::uncommon_entry` and `TotalBTreeMap::uncommon_entry`.
 
 ## 0.1.0
 
