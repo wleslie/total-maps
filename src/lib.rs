@@ -14,9 +14,10 @@ use std::{
 
 #[cfg(feature = "num-traits")]
 pub use self::nonzero::{NonZeroBTreeMap, NonZeroHashMap, ZeroCommonality};
-pub use self::{btree_map::TotalBTreeMap, hash_map::TotalHashMap};
+pub use self::{btree_map::TotalBTreeMap, empty::EmptyCommonality, hash_map::TotalHashMap};
 
 pub mod btree_map;
+pub mod empty;
 pub mod hash_map;
 #[cfg(feature = "num-traits")]
 pub mod nonzero;
@@ -26,11 +27,13 @@ pub mod nonzero;
 /// Defines a notion of "common" vs. "uncommon" values for the type `V`, used to determine which
 /// entries are stored in a [TotalHashMap] or [TotalBTreeMap].
 ///
-/// There could be multiple definitions of commonality for the same type. The basic implementation,
-/// [DefaultCommonality], is based on the [Default] trait.
+/// There could be multiple definitions of commonality for the same type:
+///
+/// - The basic implementation, [DefaultCommonality], is based on the [Default] trait.
+/// - [EmptyCommonality] is specialized for collection types.
 #[cfg_attr(
     feature = "num-traits",
-    doc = "Likewise, [ZeroCommonality] is based on the [num_traits::Zero] trait."
+    doc = "- [ZeroCommonality] is based on the [num_traits::Zero] trait."
 )]
 pub trait Commonality<V> {
     /// The common value of type `V`.
