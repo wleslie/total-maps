@@ -129,7 +129,6 @@ impl<K: Eq + Hash, V, C: Commonality<V>> TotalHashMap<K, V, C> {
     /// returns [None].
     ///
     /// In contrast with [Self::entry], this method accepts the key in borrowed form.
-    // TODO: equivalent API for BTreeMap
     pub fn uncommon_entry<'a, Q>(&'a mut self, key: &'a Q) -> Option<Entry<'a, Q, K, V, C>>
     where
         K: Borrow<Q>,

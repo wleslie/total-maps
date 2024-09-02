@@ -1,4 +1,4 @@
-## Unreleased
+## 0.2.0
 
 - *Breaking:* `hash_map::Entry` and `btree_map::Entry` have additional generic type parameters and
   bounds.
