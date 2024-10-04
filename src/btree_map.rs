@@ -516,6 +516,14 @@ impl<K: Ord, V, C: Commonality<V>> FromIterator<(K, V)> for TotalBTreeMap<K, V, 
 // --------------------------------------------------------------------------
 // Low-level access
 
+impl<K, V, C> TotalBTreeMap<K, V, C> {
+    /// Returns a view into the underlying [BTreeMap] of a [TotalBTreeMap], which contains the
+    /// *uncommon* entries.
+    pub fn as_btree_map(&self) -> &BTreeMap<K, V> {
+        &self.inner
+    }
+}
+
 impl<K: Ord, V, C: Commonality<V>> TotalBTreeMap<K, V, C> {
     /// Returns a mutable view into the underlying [BTreeMap] of a [TotalBTreeMap], from which
     /// mutating iterators can be obtained by calling [BTreeMap::values_mut] or

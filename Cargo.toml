@@ -1,6 +1,6 @@
 [package]
 name = "total-maps"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Maps where every possible key has an associated value"
 repository = "https://github.com/wleslie/total-maps"
@@ -12,9 +12,11 @@ all-features = true
 
 [dependencies]
 num-traits = { version = "0.2.18", optional = true }
+serde = { version = "1.0.210", optional = true }
 
 [dev-dependencies]
 itertools = "0.12.1"
+serde_json = "1.0.128"
 
 [profile.coverage]
 inherits = "test"

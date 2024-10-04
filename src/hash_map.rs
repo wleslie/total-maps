@@ -483,6 +483,14 @@ impl<K: Eq + Hash, V, C: Commonality<V>> FromIterator<(K, V)> for TotalHashMap<K
 // --------------------------------------------------------------------------
 // Low-level access
 
+impl<K, V, C> TotalHashMap<K, V, C> {
+    /// Returns a view into the underlying [HashMap] of a [TotalHashMap], which contains the
+    /// *uncommon* entries.
+    pub fn as_hash_map(&self) -> &HashMap<K, V> {
+        &self.inner
+    }
+}
+
 impl<K, V, C: Commonality<V>> TotalHashMap<K, V, C> {
     /// Returns a mutable view into the underlying [HashMap] of a [TotalHashMap], from which
     /// mutating iterators can be obtained by calling [HashMap::values_mut] or [HashMap::iter_mut].

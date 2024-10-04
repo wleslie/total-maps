@@ -21,6 +21,8 @@ pub mod empty;
 pub mod hash_map;
 #[cfg(feature = "num-traits")]
 pub mod nonzero;
+#[cfg(feature = "serde")]
+mod serde;
 
 // --------------------------------------------------------------------------
 

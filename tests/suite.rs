@@ -2,8 +2,11 @@ use itertools::Itertools;
 use total_maps::{Commonality, TotalBTreeMap, TotalHashMap};
 
 macro_rules! common {
-    (mod $mod:ident, $Map:ident, $as_inner_mut:ident, $iter_eq:expr $(,)?) => {
+    (mod $mod:ident, $Map:ident, $BaseMap:ident, $as_inner_mut:ident, $iter_eq:expr $(,)?) => {
         mod $mod {
+            #[cfg(feature = "serde")]
+            use std::collections::$BaseMap;
+
             use super::*;
 
             #[test]
@@ -172,12 +175,52 @@ macro_rules! common {
                 }
                 assert!(!m.contains_key("foo"));
             }
+
+            #[cfg(feature = "serde")]
+            #[test]
+            fn serde_serialize() {
+                let entries = [("foo", "bar"), ("baz", "quux")];
+
+                let total = entries.into_iter().collect::<$Map<_, _>>();
+                let json = serde_json::to_string(&total).unwrap();
+
+                let actual = serde_json::from_str::<$BaseMap<_, _>>(&json).unwrap();
+                let expected = entries.into_iter().collect();
+                assert_eq!(actual, expected);
+            }
+
+            #[cfg(feature = "serde")]
+            #[test]
+            fn serde_deserialize() {
+                let entries = [("foo", "bar"), ("baz", "quux")];
+
+                let base = entries.into_iter().collect::<$BaseMap<_, _>>();
+                let json = serde_json::to_string(&base).unwrap();
+
+                let actual = serde_json::from_str::<$Map<_, _>>(&json).unwrap();
+                let expected = entries.into_iter().collect();
+                assert_eq!(actual, expected);
+            }
+
+            #[cfg(feature = "serde")]
+            #[test]
+            fn serde_deserialize_with_common_entries() {
+                let entries = [("foo", "bar"), ("baz", "quux")];
+
+                let mut base = entries.into_iter().collect::<$BaseMap<_, _>>();
+                base.insert("this entry should not be present in the total map", "");
+                let json = serde_json::to_string(&base).unwrap();
+
+                let actual = serde_json::from_str::<$Map<_, _>>(&json).unwrap();
+                let expected = entries.into_iter().collect();
+                assert_eq!(actual, expected);
+            }
         }
     };
 }
 
-common!(mod btree_map, TotalBTreeMap, as_btree_map_mut, Iterator::eq);
-common!(mod hash_map, TotalHashMap, as_hash_map_mut, unordered_iter_eq);
+common!(mod btree_map, TotalBTreeMap, BTreeMap, as_btree_map_mut, Iterator::eq);
+common!(mod hash_map, TotalHashMap, HashMap, as_hash_map_mut, unordered_iter_eq);
 
 #[test]
 fn hash_drain() {
