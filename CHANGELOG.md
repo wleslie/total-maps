@@ -1,6 +1,10 @@
 In these change descriptions, `XMap` stands for both `HashMap` and `BTreeMap`. Likewise, `x_map`
 stands for both `hash_map` and `btree_map`.
 
+## Unreleased
+
+- Added capacity management API for `TotalHashMap`.
+
 ## 0.2.1
 
 - Added `serde` feature, and implemented `Serialize` and `Deserialize` for `TotalXMap`.

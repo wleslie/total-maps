@@ -43,13 +43,24 @@ impl<K: Clone, V: Clone, C> Clone for TotalHashMap<K, V, C> {
 
 impl<K, V, C: Commonality<V>> Default for TotalHashMap<K, V, C> {
     fn default() -> Self {
-        Self { inner: HashMap::default(), common: C::common(), _commonality: PhantomPtr::default() }
+        Self::wrap(HashMap::default())
     }
 }
 impl<K, V, C: Commonality<V>> TotalHashMap<K, V, C> {
     /// Constructs a `TotalHashMap` in which all keys are associated with the *common* value.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Constructs a `TotalHashMap` in which all keys are associated with the *common* value, with
+    /// at least the specified capacity for *uncommon* values.
+    pub fn with_capacity(capacity: usize) -> TotalHashMap<K, V, C> {
+        Self::wrap(HashMap::with_capacity(capacity))
+    }
+
+    fn wrap(inner: HashMap<K, V>) -> Self {
+        debug_assert!(inner.is_empty());
+        Self { inner, common: C::common(), _commonality: PhantomPtr::default() }
     }
 }
 
@@ -65,6 +76,27 @@ impl<K, V, C> TotalHashMap<K, V, C> {
     /// Resets all entries in the map to the *common* value.
     pub fn clear(&mut self) {
         self.inner.clear()
+    }
+
+    /// Returns the number of *uncommon* elements the map can hold without reallocating.
+    pub fn capacity(&self) -> usize {
+        self.inner.capacity()
+    }
+}
+
+impl<K: Eq + Hash, V, C> TotalHashMap<K, V, C> {
+    /// Reserves capacity for at least `additional` more *uncommon* elements to be inserted into the
+    /// `TotalHashMap`.
+    pub fn reserve(&mut self, additional: usize) {
+        self.inner.reserve(additional);
+    }
+    /// Shrinks the map's capacity for *uncommon* elements as much as possible.
+    pub fn shrink_to_fit(&mut self) {
+        self.inner.shrink_to_fit();
+    }
+    /// Shrinks the map's capiacity for *uncommon* elements with a lower limit.
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.inner.shrink_to(min_capacity);
     }
 }
 
